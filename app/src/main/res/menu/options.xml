@@ -5,11 +5,20 @@
         android:id="@+id/refresh_action"
         android:orderInCategory="1"
         android:title="Refresh"
+        android:icon="@drawable/icons8_reset_24"
         app:showAsAction="ifRoom" />
 
     <item
         android:id="@+id/settings_action"
         android:orderInCategory="2"
         android:title="Settings"
-        app:showAsAction="never"/>
+        android:icon="@drawable/icons8_services_24"
+        app:showAsAction="ifRoom"/>
+
+    <item
+        android:id="@+id/app_info_action"
+        android:orderInCategory="3"
+        android:title="App Info"
+        android:icon="@drawable/ic_info_black_24dp"
+        app:showAsAction="ifRoom"/>
 </menu>

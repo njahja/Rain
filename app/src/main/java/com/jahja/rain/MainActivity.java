@@ -1,11 +1,23 @@
 package com.jahja.rain;
 
 import android.Manifest;
+import android.app.AlertDialog;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.DialogInterface;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Typeface;
 import android.location.Location;
+import android.media.RingtoneManager;
+import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
+import android.provider.Settings;
 import android.support.annotation.NonNull;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -49,6 +61,8 @@ public class MainActivity extends AppCompatActivity {
     Task<Location> task;
     Location currentLocation;
     Double[] currentCoordinates = new Double[2]; // 0 is lat, 1 is lon
+    private static final String CHANNEL_ID = "rain_notif_channel";
+    private static final int RAIN_NOTIF_ID = 1;
     private static final int MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 1;
 
     @Override
@@ -66,11 +80,25 @@ public class MainActivity extends AppCompatActivity {
         //get instance of Fused Location Provider Client
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
 
-        weatherFont = Typeface.createFromAsset(this.getAssets(), "fonts/weathericons.ttf");
+        weatherFont = Typeface.createFromAsset(getAssets(), "fonts/weathericons.ttf");
         tvWeatherIcon.setTypeface(weatherFont);
 
-        myCheckPermissions();
+        createNotificationChannel();
 
+        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Rain")
+                .setContentText("Forecast of rain tomorrow.")
+                .setSmallIcon(R.drawable.icons8_rain_64)
+                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
+
+        Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        mBuilder.setSound(alarmSound);
+
+        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
+        notificationManager.notify(RAIN_NOTIF_ID, mBuilder.build());
+
+        myCheckPermissions();
+        getWeatherData();
     }
 
     @Override
@@ -87,9 +115,42 @@ public class MainActivity extends AppCompatActivity {
                 getWeatherData();
                 return true;
             case R.id.settings_action:
+                Intent intent = new Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS);
+                intent.putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+                intent.putExtra(Settings.EXTRA_CHANNEL_ID, CHANNEL_ID);
+                intent.setClass(this, com.jahja.rain.SettingsActivity.class);
+                startActivity(intent);
                 return true;
+            case R.id.app_info_action:
+                AlertDialog.Builder builder = new AlertDialog.Builder(this);
+                builder.setMessage(R.string.app_info)
+                        .setTitle(R.string.app_info_title)
+                        .setIcon(R.drawable.ic_info_black_24dp)
+                        .setPositiveButton(R.string.close_button, new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+                                //close dialog
+                            }
+                        });
+                builder.show();
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    public void createNotificationChannel() {
+        // Create the NotificationChannel, but only on API 26+ because
+        // the NotificationChannel class is new and not in the support library
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            CharSequence name = getString(R.string.channel_name);
+            String description = getString(R.string.channel_description);
+            int importance = NotificationManager.IMPORTANCE_DEFAULT;
+            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
+            channel.setDescription(description);
+            // Register the channel with the system; you can't change the importance
+            // or other notification behaviors after this
+            NotificationManager notificationManager = getSystemService(NotificationManager.class);
+            notificationManager.createNotificationChannel(channel);
+        }
     }
 
     public void myCheckPermissions() {
@@ -164,7 +225,7 @@ public class MainActivity extends AppCompatActivity {
 
                 tvTemperature.setText(String.format("%.2f", weatherData.getJSONObject("main").getDouble("temp"))+ " ℃");
 
-                SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
                 String updatedOn = df.format(new Date(weatherData.getLong("dt")*1000));
                 tvLastUpdatedInfo.setText("Last Updated: " + updatedOn);
                 Log.i("time string", updatedOn);
@@ -181,32 +242,18 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    private void setWeatherIcon(int actualId, long sunrise, long sunset){
-        int id = actualId / 100;
-        String icon = "";
-        if(actualId == 800){
-            long currentTime = new Date().getTime();
-            if(currentTime>=sunrise && currentTime<sunset) {
-                icon = this.getString(R.string.weather_sunny);
-            } else {
-                icon = this.getString(R.string.weather_clear_night);
-            }
+    private void setWeatherIcon(int id, long sunrise, long sunset){
+        String weatherCode = "wi_owm_";
+        long currentTime = new Date().getTime();
+        if(currentTime>=sunrise && currentTime<sunset) {
+            weatherCode += "day_";
         } else {
-            switch(id) {
-                case 2 : icon = this.getString(R.string.weather_thunder);
-                    break;
-                case 3 : icon = this.getString(R.string.weather_drizzle);
-                    break;
-                case 7 : icon = this.getString(R.string.weather_foggy);
-                    break;
-                case 8 : icon = this.getString(R.string.weather_cloudy);
-                    break;
-                case 6 : icon = this.getString(R.string.weather_snowy);
-                    break;
-                case 5 : icon = this.getString(R.string.weather_rainy);
-                    break;
-            }
+            weatherCode += "night_";
         }
-        tvWeatherIcon.setText(icon);
+        weatherCode += id;
+        int stringId = getResources().getIdentifier(weatherCode, "string", this.getPackageName());
+        Log.i("string id value", Integer.toString(stringId));
+        Log.i("weather code", weatherCode);
+        tvWeatherIcon.setText(getString(stringId));
     }
 }
