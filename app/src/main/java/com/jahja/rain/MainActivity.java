@@ -2,37 +2,26 @@ package com.jahja.rain;
 
 import android.Manifest;
 import android.app.AlertDialog;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Typeface;
 import android.location.Location;
-import android.media.RingtoneManager;
-import android.net.Uri;
 import android.os.AsyncTask;
-import android.os.Build;
 import android.provider.Settings;
 import android.support.annotation.NonNull;
-import android.support.v4.app.NotificationCompat;
-import android.support.v4.app.NotificationManagerCompat;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
-import android.view.View;
-import android.widget.Button;
-import android.widget.ProgressBar;
 import android.widget.TextView;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
-import com.google.android.gms.tasks.OnCanceledListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.android.gms.tasks.Task;
 import com.jahja.rain.utilities.NetworkUtilities;
@@ -40,7 +29,6 @@ import com.jahja.rain.utilities.NetworkUtilities;
 import org.json.JSONObject;
 
 import java.net.URL;
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -56,14 +44,14 @@ public class MainActivity extends AppCompatActivity {
     TextView tvWeatherInfo;
     TextView tvTemperature;
     TextView tvLastUpdatedInfo;
-    ProgressBar progressBar;
+    SwipeRefreshLayout mySwipeRefreshLayout;
 
     Task<Location> task;
     Location currentLocation;
     Double[] currentCoordinates = new Double[2]; // 0 is lat, 1 is lon
     private static final String CHANNEL_ID = "rain_notif_channel";
-    private static final int RAIN_NOTIF_ID = 1;
     private static final int MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION = 1;
+    private static String PREF_KEY_TIME = "pref_key_time";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -75,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
         tvTemperature = (TextView) findViewById(R.id.tv_temperature);
         tvLastUpdatedInfo = (TextView) findViewById(R.id.tv_last_updated_info);
 
-        progressBar = (ProgressBar) findViewById(R.id.progressBar);
+        mySwipeRefreshLayout = (SwipeRefreshLayout) findViewById(R.id.swipe_refresh_layout);
 
         //get instance of Fused Location Provider Client
         mFusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
@@ -83,19 +71,18 @@ public class MainActivity extends AppCompatActivity {
         weatherFont = Typeface.createFromAsset(getAssets(), "fonts/weathericons.ttf");
         tvWeatherIcon.setTypeface(weatherFont);
 
-        createNotificationChannel();
+        mySwipeRefreshLayout.setOnRefreshListener(
+                new SwipeRefreshLayout.OnRefreshListener() {
+                    @Override
+                    public void onRefresh() {
+                        Log.i("onRefresh", "onRefresh called from SwipeRefreshLayout");
 
-        NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle("Rain")
-                .setContentText("Forecast of rain tomorrow.")
-                .setSmallIcon(R.drawable.icons8_rain_64)
-                .setPriority(NotificationCompat.PRIORITY_DEFAULT);
-
-        Uri alarmSound = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-        mBuilder.setSound(alarmSound);
-
-        NotificationManagerCompat notificationManager = NotificationManagerCompat.from(this);
-        notificationManager.notify(RAIN_NOTIF_ID, mBuilder.build());
+                        // This method performs the actual data-refresh operation.
+                        // The method calls setRefreshing(false) when it's finished.
+                        getWeatherData();
+                    }
+                }
+        );
 
         myCheckPermissions();
         getWeatherData();
@@ -115,9 +102,11 @@ public class MainActivity extends AppCompatActivity {
                 getWeatherData();
                 return true;
             case R.id.settings_action:
-                Intent intent = new Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS);
+                Intent intent = new Intent(Settings.ACTION_APPLICATION_SETTINGS);
                 intent.putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
                 intent.putExtra(Settings.EXTRA_CHANNEL_ID, CHANNEL_ID);
+                double [] unboxCoordinates = {currentCoordinates[0], currentCoordinates[1]};
+                intent.putExtra(AlarmReceiver.RECEIVER_COORDINATES, unboxCoordinates);
                 intent.setClass(this, com.jahja.rain.SettingsActivity.class);
                 startActivity(intent);
                 return true;
@@ -137,22 +126,6 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    public void createNotificationChannel() {
-        // Create the NotificationChannel, but only on API 26+ because
-        // the NotificationChannel class is new and not in the support library
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            CharSequence name = getString(R.string.channel_name);
-            String description = getString(R.string.channel_description);
-            int importance = NotificationManager.IMPORTANCE_DEFAULT;
-            NotificationChannel channel = new NotificationChannel(CHANNEL_ID, name, importance);
-            channel.setDescription(description);
-            // Register the channel with the system; you can't change the importance
-            // or other notification behaviors after this
-            NotificationManager notificationManager = getSystemService(NotificationManager.class);
-            notificationManager.createNotificationChannel(channel);
-        }
-    }
-
     public void myCheckPermissions() {
         //check permissions
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
@@ -164,7 +137,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         switch (requestCode) {
             case MY_PERMISSIONS_REQUEST_ACCESS_COARSE_LOCATION: {
@@ -178,7 +152,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void getWeatherData() {
-        task = mFusedLocationClient.getLastLocation().addOnSuccessListener(this, new OnSuccessListener<Location>() {
+        task = mFusedLocationClient.getLastLocation().addOnSuccessListener(this,
+                new OnSuccessListener<Location>() {
             @Override
             public void onSuccess(Location location) {
                 currentLocation = task.getResult();
@@ -192,13 +167,14 @@ public class MainActivity extends AppCompatActivity {
     class FetchWeatherData extends AsyncTask<Double[], Void, JSONObject> {
         @Override
         protected void onPreExecute() {
-            progressBar.setVisibility(View.VISIBLE);
+            mySwipeRefreshLayout.setRefreshing(true);
             super.onPreExecute();
         }
 
         @Override
         protected JSONObject doInBackground(Double[]... params) {
-            URL requestUrl = NetworkUtilities.buildUrl(params[0]);
+            URL requestUrl = NetworkUtilities.buildUrl(NetworkUtilities.CURRENT_WEATHER_URL,
+                    params[0]);
 
             try{
                 String jsonStringResponse = NetworkUtilities.getResponseFromHttpUrl(requestUrl);
@@ -223,19 +199,19 @@ public class MainActivity extends AppCompatActivity {
                         .getJSONObject(0)
                         .getString("description").toUpperCase(Locale.US));
 
-                tvTemperature.setText(String.format("%.2f", weatherData.getJSONObject("main").getDouble("temp"))+ " ℃");
+                tvTemperature.setText(String.format("%.2f", weatherData.getJSONObject("main")
+                        .getDouble("temp"))+ " ℃");
 
                 SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm");
                 String updatedOn = df.format(new Date(weatherData.getLong("dt")*1000));
                 tvLastUpdatedInfo.setText("Last Updated: " + updatedOn);
-                Log.i("time string", updatedOn);
 
                 setWeatherIcon(weatherData.getJSONArray("weather")
                                 .getJSONObject(0).getInt("id"),
                         weatherData.getJSONObject("sys").getLong("sunrise") * 1000,
                         weatherData.getJSONObject("sys").getLong("sunset") * 1000);
 
-                progressBar.setVisibility(View.INVISIBLE);
+                mySwipeRefreshLayout.setRefreshing(false);
             } catch(Exception e) {
                 Log.e("onPostExecute error", "One or more fields not found in JSON data");
             }
@@ -252,8 +228,6 @@ public class MainActivity extends AppCompatActivity {
         }
         weatherCode += id;
         int stringId = getResources().getIdentifier(weatherCode, "string", this.getPackageName());
-        Log.i("string id value", Integer.toString(stringId));
-        Log.i("weather code", weatherCode);
         tvWeatherIcon.setText(getString(stringId));
     }
 }

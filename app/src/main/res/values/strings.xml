@@ -17,4 +17,12 @@
     </string>
     <string name="app_info_title">App Info</string>
     <string name="close_button">Close</string>
+    <string name="set_button">Set</string>
+    <string name="cancel_button">Cancel</string>
+
+    <string name="time_picker">Schedule Notification Time</string>
+
+    <string name="refresh">Refresh</string>
+    <string name="settings">Settings</string>
+
 </resources>

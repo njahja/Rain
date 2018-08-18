@@ -4,21 +4,21 @@
     <item
         android:id="@+id/refresh_action"
         android:orderInCategory="1"
-        android:title="Refresh"
+        android:title="@string/refresh"
         android:icon="@drawable/icons8_reset_24"
         app:showAsAction="ifRoom" />
 
     <item
         android:id="@+id/settings_action"
         android:orderInCategory="2"
-        android:title="Settings"
+        android:title="@string/settings"
         android:icon="@drawable/icons8_services_24"
         app:showAsAction="ifRoom"/>
 
     <item
         android:id="@+id/app_info_action"
         android:orderInCategory="3"
-        android:title="App Info"
+        android:title="@string/app_info_title"
         android:icon="@drawable/ic_info_black_24dp"
-        app:showAsAction="ifRoom"/>
+        app:showAsAction="ifRoom" />
 </menu>

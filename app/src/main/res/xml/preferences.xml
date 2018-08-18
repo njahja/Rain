@@ -4,10 +4,12 @@
     <PreferenceCategory
         android:title="@string/pref_notif_title"
         android:key="pref_key_notif_settings">
-        <CheckBoxPreference
-            android:key="pref_notif_toggle"
-            android:title="@string/pref_notif_toggle"
-            android:defaultValue="true">
-        </CheckBoxPreference>
+        <com.jahja.rain.TimePreference
+            android:key="pref_key_time"
+            android:title="@string/time_picker"
+            android:positiveButtonText="@string/set_button"
+            android:negativeButtonText="@string/cancel_button"
+            android:defaultValue="0"
+            android:persistent="true"/>
     </PreferenceCategory>
 </PreferenceScreen>

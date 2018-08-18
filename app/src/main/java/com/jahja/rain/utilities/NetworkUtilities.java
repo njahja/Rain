@@ -9,31 +9,38 @@ import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Scanner;
 
-/**
- * Created by Nick on 8/7/2018.
- */
-
 public class NetworkUtilities {
 
-    final static String CURRENT_WEATHER_URL = "http://api.openweathermap.org/data/2.5/weather";
-    final static String FORECAST_WEATHER_URL = "http://api.openweathermap.org/data/2.5/forecast";
-    final static String API_KEY = "ae51a269b4fa4fd4ba0ac596705f74fc";
-    static String units = "metric";
-    final static int cnt = 8; //data every 3 hours * 8 = 24 hours in a day
+    final public static String CURRENT_WEATHER_URL = "http://api.openweathermap.org/data/2.5/weather";
+    final public static String FORECAST_WEATHER_URL = "http://api.openweathermap.org/data/2.5/forecast";
+    final private static String API_KEY = "ae51a269b4fa4fd4ba0ac596705f74fc";
+    static private String units = "metric";
+    final private static int cnt = 8; //data every 3 hours * 8 = 24 hours in a day
 
-    final static String PARAM_LAT = "lat";
-    final static String PARAM_LON = "lon";
-    final static String PARAM_UNITS = "units";
-    final static String PARAM_CNT = "cnt";
-    final static String PARAM_API_ID = "APPID";
+    final private static String PARAM_LAT = "lat";
+    final private static String PARAM_LON = "lon";
+    final private static String PARAM_UNITS = "units";
+    final private static String PARAM_CNT = "cnt";
+    final private static String PARAM_API_ID = "APPID";
 
-    public static URL buildUrl(Double[] coordinates) {
-        Uri builtUri = Uri.parse(CURRENT_WEATHER_URL).buildUpon()
-                .appendQueryParameter(PARAM_LAT, Double.toString(coordinates[0]))
-                .appendQueryParameter(PARAM_LON, Double.toString(coordinates[1]))
-                .appendQueryParameter(PARAM_UNITS, units)
-                .appendQueryParameter(PARAM_API_ID, API_KEY)
-                .build();
+    public static URL buildUrl(String baseUrl, Double[] coordinates) {
+        Uri builtUri;
+        if(baseUrl.equals(CURRENT_WEATHER_URL)) {
+            builtUri = Uri.parse(baseUrl).buildUpon()
+                    .appendQueryParameter(PARAM_LAT, Double.toString(coordinates[0]))
+                    .appendQueryParameter(PARAM_LON, Double.toString(coordinates[1]))
+                    .appendQueryParameter(PARAM_UNITS, units)
+                    .appendQueryParameter(PARAM_API_ID, API_KEY)
+                    .build();
+        } else {
+            builtUri = Uri.parse(baseUrl).buildUpon()
+                    .appendQueryParameter(PARAM_LAT, Double.toString(coordinates[0]))
+                    .appendQueryParameter(PARAM_LON, Double.toString(coordinates[1]))
+                    .appendQueryParameter(PARAM_UNITS, units)
+                    .appendQueryParameter(PARAM_CNT, Integer.toString(cnt))
+                    .appendQueryParameter(PARAM_API_ID, API_KEY)
+                    .build();
+        }
         URL url = null;
         try {
             url = new URL(builtUri.toString());
