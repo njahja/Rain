@@ -83,7 +83,7 @@ public class SettingsActivity extends PreferenceActivity implements SharedPrefer
         NotificationCompat.Builder mBuilder = new NotificationCompat.Builder(this, CHANNEL_ID)
                 .setContentTitle("Rain")
                 .setContentText("Forecast of rain tomorrow.")
-                .setSmallIcon(R.drawable.icons8_rain_64)
+                .setSmallIcon(R.drawable.ic_new_rain_logo)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
                 .setContentIntent(tapNotifPendingIntent)
                 .setAutoCancel(true);
@@ -92,6 +92,7 @@ public class SettingsActivity extends PreferenceActivity implements SharedPrefer
         mBuilder.setSound(alarmSound);
 
         Notification alarmNotif = mBuilder.build();
+        Log.i("alarmNotif called build()", "Notifcation has been built.");
 
         AlarmManager alarmMgr = (AlarmManager)getSystemService(Context.ALARM_SERVICE);
         Intent alarmIntent = new Intent(this, AlarmReceiver.class);
